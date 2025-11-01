@@ -5,6 +5,7 @@ import Draggable from 'react-draggable';
 import { Tabs } from './chat/Tabs';
 import { Toolbar } from './chat/Toolbar';
 import { MessageBubble } from './chat/MessageBubble';
+import { ScreenshotGallery } from './ScreenshotGallery';
 import { useGeminiChat } from '../hooks/useGeminiChat';
 import { cn } from '../lib/utils';
 
@@ -24,6 +25,12 @@ export const ChatOverlay: React.FC<ChatOverlayProps> = ({ isOpen, onClose, apiKe
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const { messages, isLoading, error, sendMessage } = useGeminiChat(apiKey);
+
+  const handleScreenshotAnalysis = (paths: string[], result: string) => {
+    // Add the analysis result as a message in the chat
+    setActiveTab('Chat');
+    sendMessage(`[Screenshot Analysis Result]\n${result}`);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -138,40 +145,58 @@ export const ChatOverlay: React.FC<ChatOverlayProps> = ({ isOpen, onClose, apiKe
                     </button>
                   </div>
                 </div>
-                <Tabs tabs={['Chat', 'Transcript']} activeTab={activeTab} onChange={setActiveTab} />
+                <Tabs tabs={['Chat', 'Screenshots', 'Transcript']} activeTab={activeTab} onChange={setActiveTab} />
               </div>
 
               {/* Toolbar */}
-              <Toolbar />
+              {activeTab === 'Chat' && <Toolbar />}
 
-              {/* Messages Area */}
+              {/* Content Area */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" style={{ height: 'calc(100% - 200px)' }}>
-                {messages.length === 0 ? (
+                {activeTab === 'Chat' && (
+                  <>
+                    {messages.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <div className="text-6xl mb-4">✨</div>
+                        <h3 className="text-lg font-semibold mb-2">Start chatting with Gemini</h3>
+                        <p className="text-sm text-white/50 max-w-xs">
+                          Ask questions, get creative, or explore new ideas
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        {messages.map((message) => (
+                          <MessageBubble key={message.id} message={message} />
+                        ))}
+                        {isLoading && (
+                          <div className="flex justify-start">
+                            <div className="bg-white/5 rounded-2xl rounded-bl-md px-4 py-3 border border-white/10">
+                              <div className="flex gap-1">
+                                <div className="w-2 h-2 rounded-full bg-violet-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <div className="w-2 h-2 rounded-full bg-violet-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <div className="w-2 h-2 rounded-full bg-violet-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                      </>
+                    )}
+                  </>
+                )}
+
+                {activeTab === 'Screenshots' && (
+                  <ScreenshotGallery onAnalyze={handleScreenshotAnalysis} />
+                )}
+
+                {activeTab === 'Transcript' && (
                   <div className="flex flex-col items-center justify-center h-full text-center">
-                    <div className="text-6xl mb-4">✨</div>
-                    <h3 className="text-lg font-semibold mb-2">Start chatting with Gemini</h3>
+                    <div className="text-4xl mb-4">📝</div>
+                    <h3 className="text-lg font-semibold mb-2">Transcript</h3>
                     <p className="text-sm text-white/50 max-w-xs">
-                      Ask questions, get creative, or explore new ideas
+                      Session transcripts will appear here
                     </p>
                   </div>
-                ) : (
-                  <>
-                    {messages.map((message) => (
-                      <MessageBubble key={message.id} message={message} />
-                    ))}
-                    {isLoading && (
-                      <div className="flex justify-start">
-                        <div className="bg-white/5 rounded-2xl rounded-bl-md px-4 py-3 border border-white/10">
-                          <div className="flex gap-1">
-                            <div className="w-2 h-2 rounded-full bg-violet-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <div className="w-2 h-2 rounded-full bg-violet-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <div className="w-2 h-2 rounded-full bg-violet-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                  </>
                 )}
               </div>
 
@@ -182,39 +207,41 @@ export const ChatOverlay: React.FC<ChatOverlayProps> = ({ isOpen, onClose, apiKe
                 </div>
               )}
 
-              {/* Input Area */}
-              <div className="border-t border-white/10 bg-gradient-to-b from-transparent to-white/5 p-4">
-                <div className="flex items-end gap-2">
-                  <textarea
-                    ref={inputRef}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    placeholder="Ask Gemini anything..."
-                    rows={1}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 resize-none max-h-32"
-                    style={{
-                      minHeight: '44px',
-                    }}
-                    onInput={(e) => {
-                      const target = e.target as HTMLTextAreaElement;
-                      target.style.height = 'auto';
-                      target.style.height = Math.min(target.scrollHeight, 128) + 'px';
-                    }}
-                  />
-                  <button
-                    onClick={handleSend}
-                    disabled={isLoading || !input.trim()}
-                    className="p-3 bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all shadow-lg shadow-violet-500/20"
-                  >
-                    <Send className="w-4 h-4 text-white" />
-                  </button>
+              {/* Input Area - Only show on Chat tab */}
+              {activeTab === 'Chat' && (
+                <div className="border-t border-white/10 bg-gradient-to-b from-transparent to-white/5 p-4">
+                  <div className="flex items-end gap-2">
+                    <textarea
+                      ref={inputRef}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                      placeholder="Ask Gemini anything..."
+                      rows={1}
+                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 resize-none max-h-32"
+                      style={{
+                        minHeight: '44px',
+                      }}
+                      onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                      }}
+                    />
+                    <button
+                      onClick={handleSend}
+                      disabled={isLoading || !input.trim()}
+                      className="p-3 bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all shadow-lg shadow-violet-500/20"
+                    >
+                      <Send className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-xs text-white/30">
+                    <span>Press Enter to send, Shift+Enter for new line</span>
+                    <span>⌘K</span>
+                  </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between text-xs text-white/30">
-                  <span>Press Enter to send, Shift+Enter for new line</span>
-                  <span>⌘K</span>
-                </div>
-              </div>
+              )}
             </motion.div>
           </Draggable>
         </>

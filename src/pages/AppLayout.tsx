@@ -9,24 +9,57 @@ import { Settings as SettingsIcon } from 'lucide-react';
 export const AppLayout: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [apiKey, setApiKey] = useState(storage.getApiKey() || '');
+  const [apiKey, setApiKey] = useState('');
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const isElectron = typeof window !== 'undefined' && window.electronAPI;
 
   useEffect(() => {
-    if (apiKey) {
-      try {
-        initializeGemini(apiKey);
-      } catch (error) {
-        console.error('Failed to initialize Gemini:', error);
+    // Load API key from Electron if available, otherwise from localStorage
+    const loadApiKey = async () => {
+      if (isElectron) {
+        try {
+          const key = await window.electronAPI.getApiKey();
+          setApiKey(key || '');
+          if (key) {
+            initializeGemini(key);
+          } else {
+            setIsSettingsOpen(true);
+          }
+        } catch (error) {
+          console.error('Error loading API key from Electron:', error);
+          const localKey = storage.getApiKey() || '';
+          setApiKey(localKey);
+          if (!localKey) {
+            setIsSettingsOpen(true);
+          }
+        }
+      } else {
+        const localKey = storage.getApiKey() || '';
+        setApiKey(localKey);
+        if (localKey) {
+          initializeGemini(localKey);
+        } else {
+          setIsSettingsOpen(true);
+        }
       }
-    } else {
-      setIsSettingsOpen(true);
-    }
-  }, [apiKey]);
+    };
 
-  const handleApiKeyChange = (newKey: string) => {
+    loadApiKey();
+  }, [isElectron]);
+
+  const handleApiKeyChange = async (newKey: string) => {
     setApiKey(newKey);
     storage.setApiKey(newKey);
+
+    // Save to Electron if available
+    if (isElectron) {
+      try {
+        await window.electronAPI.saveApiKey(newKey);
+      } catch (error) {
+        console.error('Error saving API key to Electron:', error);
+      }
+    }
+
     if (newKey) {
       try {
         initializeGemini(newKey);
