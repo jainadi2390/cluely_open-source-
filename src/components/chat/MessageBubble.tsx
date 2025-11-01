@@ -19,10 +19,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     >
       <div
         className={cn(
-          'max-w-[80%] rounded-2xl px-4 py-3 shadow-sm',
+          'max-w-[80%] rounded-2xl px-4 py-3',
           isUser
-            ? 'bg-primary text-primary-foreground rounded-br-md'
-            : 'bg-card text-card-foreground rounded-bl-md border'
+            ? 'bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-br-md shadow-lg shadow-violet-500/20'
+            : 'bg-white/5 text-white rounded-bl-md border border-white/10'
         )}
       >
         <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -38,14 +38,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                 code: ({ inline, children, ...props }: any) =>
                   inline ? (
                     <code
-                      className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono"
+                      className="bg-white/10 px-1.5 py-0.5 rounded text-sm font-mono text-violet-300"
                       {...props}
                     >
                       {children}
                     </code>
                   ) : (
                     <code
-                      className="block bg-muted p-3 rounded-md text-sm font-mono overflow-x-auto my-2"
+                      className="block bg-white/10 p-3 rounded-md text-sm font-mono overflow-x-auto my-2 text-violet-300"
                       {...props}
                     >
                       {children}

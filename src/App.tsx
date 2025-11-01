@@ -1,7 +1,7 @@
-import { ChatInterface } from './components/chat/ChatInterface';
+import { AppLayout } from './pages/AppLayout';
 
 function App() {
-  return <ChatInterface />;
+  return <AppLayout />;
 }
 
 export default App;
